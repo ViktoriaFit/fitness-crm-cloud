@@ -1,4 +1,4 @@
-﻿import os
+import os
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta
@@ -92,7 +92,7 @@ def init_db():
 
 init_db()
 
-# --- ГЛАВНАЯ СТРАНИЦА ---
+# --- ГЛАВНАЯ ---
 @app.get("/", response_class=HTMLResponse)
 async def read_clients(request: Request):
     conn = get_db_connection()
@@ -131,7 +131,7 @@ async def read_clients(request: Request):
         context={"clients": clients, "count": len(clients), "warnings": warnings}
     )
 
-# --- ДОБАВЛЕНИЕ КЛИЕНТА ---
+# --- ДОБАВЛЕНИЕ (С РАСЧЁТОМ ДАТЫ) ---
 @app.post("/add")
 async def add_client(
     last_name: str = Form(...),
@@ -150,6 +150,7 @@ async def add_client(
     sessions_total_int = int(sessions_total) if sessions_total else 0
     amount_float = float(amount) if amount else 0.0
 
+    # РАССЧИТЫВАЕМ ДАТУ ОКОНЧАНИЯ
     end_date = calculate_end_date(payment_date, subscription_type, training_days, sessions_total_int)
     
     conn = get_db_connection()
