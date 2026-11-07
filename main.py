@@ -9,14 +9,14 @@ from fastapi.templating import Jinja2Templates
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# --- СТРОКА ПОДКЛЮЧЕНИЯ (ВСТАВЛЕНА ПРЯМО В КОД) ---
+# --- СТРОКА ПОДКЛЮЧЕНИЯ ---
 DATABASE_URL = "postgresql://neondb_owner:npg_9hPs6fVEaZex@ep-odd-union-benzd0qk-pooler.c-9.us-east-2.aws.neon.tech/neondb?sslmode=require"
 
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL)
     return conn
 
-# --- ФУНКЦИЯ РАСЧЁТА ---
+# --- ФУНКЦИЯ РАСЧЁТА (ЕСЛИ ДАТА НЕ ВВЕДЕНА ВРУЧНУЮ) ---
 def calculate_end_date(payment_date_str, sub_type, days_week_str, sessions_total):
     try:
         pay_date = datetime.strptime(payment_date_str, "%Y-%m-%d").date()
@@ -61,7 +61,7 @@ def calculate_end_date(payment_date_str, sub_type, days_week_str, sessions_total
         return last_date.strftime("%Y-%m-%d") if last_date else ""
     return ""
 
-# --- СОЗДАНИЕ ТАБЛИЦЫ (УДАЛЯЕМ СТАРУЮ) ---
+# --- СОЗДАНИЕ ТАБЛИЦЫ ---
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -130,13 +130,14 @@ async def read_clients(request: Request):
         context={"clients": clients, "count": len(clients), "warnings": warnings}
     )
 
-# --- ДОБАВЛЕНИЕ (С РАСЧЁТОМ) ---
+# --- ДОБАВЛЕНИЕ (ПРИНИМАЕТ ДАТУ ОКОНЧАНИЯ ИЗ ФОРМЫ) ---
 @app.post("/add")
 async def add_client(
     last_name: str = Form(...),
     first_name: str = Form(...),
     payment_date: str = Form(...),
     first_training_date: str = Form(""),
+    subscription_end_date: str = Form(""),
     amount: str = Form("0"), 
     phone: str = Form(""),
     birthday: str = Form(""),
@@ -149,7 +150,9 @@ async def add_client(
     sessions_total_int = int(sessions_total) if sessions_total else 0
     amount_float = float(amount) if amount else 0.0
 
-    end_date = calculate_end_date(payment_date, subscription_type, training_days, sessions_total_int)
+    # ЕСЛИ ДАТА НЕ ВВЕДЕНА ВРУЧНУЮ, СЧИТАЕМ АВТОМАТИЧЕСКИ
+    if not subscription_end_date:
+        subscription_end_date = calculate_end_date(payment_date, subscription_type, training_days, sessions_total_int)
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -161,7 +164,7 @@ async def add_client(
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (
         last_name, first_name, payment_date, first_training_date,
-        end_date, amount_float, phone, birthday, notes,
+        subscription_end_date, amount_float, phone, birthday, notes,
         subscription_type, trainer, sessions_total_int, sessions_total_int, training_days
     ))
     conn.commit()
