@@ -129,13 +129,15 @@
                     <div><label>Дата первой тренировки</label><input type="date" name="first_training_date"></div>
                 </div>
                 <div class="form-row">
+                    <div><label>Дата окончания *</label><input type="date" name="subscription_end_date" required></div>
                     <div><label>Сумма (AZN) *</label><input type="number" step="0.01" name="amount" required></div>
-                    <div><label>Телефон *</label><input type="text" name="phone" required></div>
                 </div>
                 <div class="form-row">
+                    <div><label>Телефон *</label><input type="text" name="phone" required></div>
                     <div><label>День рождения</label><input type="date" name="birthday"></div>
-                    <div><label>Примечание</label><textarea name="notes" rows="1"></textarea></div>
                 </div>
+                <label>Примечание</label>
+                <textarea name="notes" rows="1"></textarea>
                 
                 <label>Тип абонемента *</label>
                 <select name="subscription_type" onchange="toggleFields()" required>
