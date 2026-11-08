@@ -3,6 +3,7 @@ import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta
 import calendar
+import time
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -10,13 +11,23 @@ from fastapi.templating import Jinja2Templates
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# --- ИСПРАВЛЕНИЕ: ЗАМЕНА ТИПА ПОДКЛЮЧЕНИЯ ---
-_raw_db_url = os.environ.get("DATABASE_URL", "")
-DATABASE_URL = _raw_db_url.replace("postgresql://", "postgresql+psycopg://")
+# --- СТРОКА ПОДКЛЮЧЕНИЯ ИЗ НАСТРОЕК RENDER ---
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
+# --- ФУНКЦИЯ ПОДКЛЮЧЕНИЯ С ОЖИДАНИЕМ (ЕСЛИ БАЗА СПИТ) ---
 def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL)
-    return conn
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            conn = psycopg2.connect(DATABASE_URL)
+            return conn
+        except psycopg2.OperationalError as e:
+            print(f"Попытка {attempt + 1} не удалась: {e}")
+            if attempt < max_retries - 1:
+                print("Ждём 5 секунд и пробуем снова...")
+                time.sleep(5)
+            else:
+                raise e
 
 # --- ФУНКЦИЯ РАСЧЁТА ---
 def calculate_end_date(payment_date_str, sub_type, days_week_str, sessions_total):
