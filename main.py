@@ -14,7 +14,7 @@ templates = Jinja2Templates(directory="templates")
 # --- СТРОКА ПОДКЛЮЧЕНИЯ ИЗ НАСТРОЕК RENDER ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# --- ФУНКЦИЯ ПОДКЛЮЧЕНИЯ С ОЖИДАНИЕМ (ЕСЛИ БАЗА СПИТ) ---
+# --- ФУНКЦИЯ ПОДКЛЮЧЕНИЯ С ОЖИДАНИЕМ ---
 def get_db_connection():
     max_retries = 5
     for attempt in range(max_retries):
