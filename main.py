@@ -1,3 +1,4 @@
+import os
 import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta
@@ -9,14 +10,14 @@ from fastapi.templating import Jinja2Templates
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# --- СТРОКА ПОДКЛЮЧЕНИЯ ---
-DATABASE_URL = "postgresql://neondb_owner:npg_9hPs6fVEaZex@ep-odd-union-benzd0qk-pooler.c-9.us-east-2.aws.neon.tech/neondb?sslmode=require"
+# --- СТРОКА ПОДКЛЮЧЕНИЯ БЕРЁТСЯ ТОЛЬКО ИЗ НАСТРОЕК RENDER ---
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL)
     return conn
 
-# --- ФУНКЦИЯ РАСЧЁТА (ЕСЛИ ДАТА НЕ ВВЕДЕНА ВРУЧНУЮ) ---
+# --- ФУНКЦИЯ РАСЧЁТА ---
 def calculate_end_date(payment_date_str, sub_type, days_week_str, sessions_total):
     try:
         pay_date = datetime.strptime(payment_date_str, "%Y-%m-%d").date()
@@ -130,7 +131,7 @@ async def read_clients(request: Request):
         context={"clients": clients, "count": len(clients), "warnings": warnings}
     )
 
-# --- ДОБАВЛЕНИЕ (ПРИНИМАЕТ ДАТУ ОКОНЧАНИЯ ИЗ ФОРМЫ) ---
+# --- ДОБАВЛЕНИЕ ---
 @app.post("/add")
 async def add_client(
     last_name: str = Form(...),
@@ -150,7 +151,6 @@ async def add_client(
     sessions_total_int = int(sessions_total) if sessions_total else 0
     amount_float = float(amount) if amount else 0.0
 
-    # ЕСЛИ ДАТА НЕ ВВЕДЕНА ВРУЧНУЮ, СЧИТАЕМ АВТОМАТИЧЕСКИ
     if not subscription_end_date:
         subscription_end_date = calculate_end_date(payment_date, subscription_type, training_days, sessions_total_int)
     
