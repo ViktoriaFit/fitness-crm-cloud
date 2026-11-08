@@ -10,8 +10,9 @@ from fastapi.templating import Jinja2Templates
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# --- СТРОКА ПОДКЛЮЧЕНИЯ БЕРЁТСЯ ТОЛЬКО ИЗ НАСТРОЕК RENDER ---
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# --- ИСПРАВЛЕНИЕ: ЗАМЕНА ТИПА ПОДКЛЮЧЕНИЯ ---
+_raw_db_url = os.environ.get("DATABASE_URL", "")
+DATABASE_URL = _raw_db_url.replace("postgresql://", "postgresql+psycopg://")
 
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL)
