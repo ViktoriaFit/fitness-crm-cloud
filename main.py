@@ -3,7 +3,6 @@ import psycopg2
 import psycopg2.extras
 from datetime import datetime, timedelta
 import calendar
-import time
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -11,24 +10,12 @@ from fastapi.templating import Jinja2Templates
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# --- СТРОКА ПОДКЛЮЧЕНИЯ БЕРЁТСЯ ТОЛЬКО ИЗ НАСТРОЕК RENDER ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# --- ФУНКЦИЯ ПОДКЛЮЧЕНИЯ С ОЖИДАНИЕМ (ЕСЛИ БАЗА СПИТ) ---
 def get_db_connection():
-    max_retries = 5
-    for attempt in range(max_retries):
-        try:
-            conn = psycopg2.connect(DATABASE_URL)
-            return conn
-        except psycopg2.OperationalError as e:
-            print(f"Попытка {attempt + 1} не удалась: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(5)
-            else:
-                raise e
+    conn = psycopg2.connect(DATABASE_URL)
+    return conn
 
-# --- ФУНКЦИЯ РАСЧЁТА ---
 def calculate_end_date(payment_date_str, sub_type, days_week_str, sessions_total):
     try:
         pay_date = datetime.strptime(payment_date_str, "%Y-%m-%d").date()
@@ -73,7 +60,6 @@ def calculate_end_date(payment_date_str, sub_type, days_week_str, sessions_total
         return last_date.strftime("%Y-%m-%d") if last_date else ""
     return ""
 
-# --- СОЗДАНИЕ ТАБЛИЦЫ (ЕСЛИ ЕЁ НЕТ) ---
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -102,7 +88,6 @@ def init_db():
 
 init_db()
 
-# --- ГЛАВНАЯ ---
 @app.get("/", response_class=HTMLResponse)
 async def read_clients(request: Request):
     conn = get_db_connection()
@@ -141,7 +126,6 @@ async def read_clients(request: Request):
         context={"clients": clients, "count": len(clients), "warnings": warnings}
     )
 
-# --- ДОБАВЛЕНИЕ ---
 @app.post("/add")
 async def add_client(
     last_name: str = Form(...),
@@ -182,7 +166,6 @@ async def add_client(
     conn.close()
     return RedirectResponse(url="/", status_code=303)
 
-# --- РЕДАКТИРОВАНИЕ ---
 @app.get("/edit/{client_id}", response_class=HTMLResponse)
 async def edit_client_form(request: Request, client_id: int):
     conn = get_db_connection()
