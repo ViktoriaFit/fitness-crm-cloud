@@ -13,7 +13,11 @@ templates = Jinja2Templates(directory="templates")
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db_connection():
-    conn = psycopg2.connect(DATABASE_URL)
+    # Убираем возможные лишние символы, если они есть
+    dsn = DATABASE_URL.strip()
+    if dsn.startswith("psql"):
+        dsn = dsn.split("'")[1] if "'" in dsn else dsn.replace("psql", "").strip()
+    conn = psycopg2.connect(dsn)
     return conn
 
 def calculate_end_date(payment_date_str, sub_type, days_week_str, sessions_total):
