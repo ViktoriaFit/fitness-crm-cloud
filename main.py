@@ -11,10 +11,10 @@ from fastapi.templating import Jinja2Templates
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# --- СТРОКА ПОДКЛЮЧЕНИЯ ИЗ НАСТРОЕК RENDER ---
+# --- СТРОКА ПОДКЛЮЧЕНИЯ БЕРЁТСЯ ТОЛЬКО ИЗ НАСТРОЕК RENDER ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# --- ФУНКЦИЯ ПОДКЛЮЧЕНИЯ С ОЖИДАНИЕМ ---
+# --- ФУНКЦИЯ ПОДКЛЮЧЕНИЯ С ОЖИДАНИЕМ (ЕСЛИ БАЗА СПИТ) ---
 def get_db_connection():
     max_retries = 5
     for attempt in range(max_retries):
@@ -24,7 +24,6 @@ def get_db_connection():
         except psycopg2.OperationalError as e:
             print(f"Попытка {attempt + 1} не удалась: {e}")
             if attempt < max_retries - 1:
-                print("Ждём 5 секунд и пробуем снова...")
                 time.sleep(5)
             else:
                 raise e
@@ -74,13 +73,12 @@ def calculate_end_date(payment_date_str, sub_type, days_week_str, sessions_total
         return last_date.strftime("%Y-%m-%d") if last_date else ""
     return ""
 
-# --- СОЗДАНИЕ ТАБЛИЦЫ ---
+# --- СОЗДАНИЕ ТАБЛИЦЫ (ЕСЛИ ЕЁ НЕТ) ---
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('DROP TABLE IF EXISTS clients') 
     cursor.execute('''
-        CREATE TABLE clients (
+        CREATE TABLE IF NOT EXISTS clients (
             id SERIAL PRIMARY KEY,
             last_name TEXT NOT NULL,
             first_name TEXT NOT NULL,
